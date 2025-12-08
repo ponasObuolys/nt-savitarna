@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model uzkl_ivertink1P {
+  id                                       Int                           @id @default(autoincrement())
+  token                                    String?                       @unique(map: "token") @db.VarChar(100)
+  contact_name                             String                        @db.VarChar(255)
+  contact_email                            String                        @db.VarChar(255)
+  contact_agree_to_newsletter              Boolean?
+  address_municipality_id                  Int?
+  address_municipality                     String?                       @db.VarChar(255)
+  address_city_id                          Int?
+  address_city                             String?                       @db.VarChar(255)
+  address_street_id                        Int?
+  address_street                           String?                       @db.VarChar(255)
+  address_house_number                     String?                       @db.VarChar(5)
+  address_coordinates                      Unsupported("point")?
+  address_location_details                 String?                       @db.Text
+  main_property                            String?                       @db.VarChar(255)
+  main_property_type                       String?                       @db.VarChar(255)
+  main_property_purpose                    String?                       @db.VarChar(255)
+  main_other_property_purpose              String?                       @db.VarChar(255)
+  main_energy_class                        String?                       @db.VarChar(10)
+  main_other_energy_class                  String?                       @db.VarChar(255)
+  main_relation_to_property                String?                       @db.VarChar(255)
+  main_other_relation_to_property          String?                       @db.VarChar(255)
+  main_valuation_purpose                   String?                       @db.VarChar(255)
+  main_retrospective_year                  Int?
+  main_is_property_being_sold              String?                       @db.VarChar(255)
+  main_seller                              String?                       @db.VarChar(100)
+  main_want_consultation                   Boolean?
+  details_indoor_area                      Int?
+  details_land_area                        Int?
+  details_land_area_type                   String?                       @db.VarChar(255)
+  details_year_built                       Int?
+  details_bathrooms                        Int?
+  details_in_floor                         Int?
+  details_total_floors                     Int?
+  details_multiple_floors                  Boolean?
+  details_rooms                            Int?
+  details_renovation                       Boolean?
+  details_renovation_year                  Int?
+  details_property_state                   String?                       @db.VarChar(255)
+  details_property_completion_percentage   Int?
+  details_house_construction               String?                       @db.VarChar(255)
+  details_other_house_construction         String?                       @db.VarChar(255)
+  details_insulated_house                  Boolean?
+  details_property_photos                  String?                       @db.VarChar(255)
+  details_photos_upload                    String?                       @db.Text
+  details_photo_link                       String?                       @db.Text
+  features_parking                         String?                       @db.VarChar(255)
+  features_storage_room                    Boolean?
+  features_terrace                         Boolean?
+  features_balcony                         Boolean?
+  features_garden                          Boolean?
+  features_shared_premises                 Boolean?
+  features_basement                        Boolean?
+  features_barn                            Boolean?
+  features_garage                          Boolean?
+  features_solar_power                     Boolean?
+  features_city_supply_communications      Boolean?
+  features_borehole_communications         Boolean?
+  features_sewage_treatment_communications Boolean?
+  features_gas_access_communications       Boolean?
+  features_electricity_communications      Boolean?
+  features_plumbing_communications         Boolean?
+  features_other_communications            String?                       @db.VarChar(255)
+  features_project_plan                    String?                       @db.VarChar(255)
+  features_other_project_plan              String?                       @db.VarChar(255)
+  features_empty_land                      Boolean?
+  features_boundary_with_water             Boolean?
+  features_unregistered_buildings          Boolean?
+  features_forest_in_land                  Boolean?
+  features_other_additional_features       String?                       @db.VarChar(255)
+  opinion                                  String?                       @db.VarChar(50)
+  created_at                               DateTime                      @default(now()) @db.Timestamp(0)
+  price                                    Int?
+  price_from                               Int?
+  price_to                                 Int?
+  items_count                              Int?
+  status                                   String?                       @db.VarChar(50)
+  service_type                             uzkl_ivertink1P_service_type?
+  priskirta                                String?                       @db.VarChar(255)
+  priskirta_date                           DateTime?                     @db.DateTime(0)
+  variant                                  String                        @db.Text
+  is_enough_data_for_ai                    Boolean?                      @default(false)
+  rc_variant                               String?                       @db.VarChar(10)
+  rc_count                                 Int?
+  rc_params_json                           String?                       @db.LongText
+  rc_filename                              String?                       @db.VarChar(100)
+  soap_count                               Int?
+  soap_san_ids                             String?                       @db.Text
+  rc_price                                 Int?
+}
+
+model app_users {
+  id            Int            @id @default(autoincrement())
+  email         String         @unique @db.VarChar(255)
+  password_hash String         @db.VarChar(255)
+  role          app_users_role @default(client)
+  created_at    DateTime       @default(now()) @db.Timestamp(0)
+}
+
+enum app_users_role {
+  client
+  admin
+}
+
+enum uzkl_ivertink1P_service_type {
+  TYPE_1 @map("1")
+  TYPE_2 @map("2")
+  TYPE_3 @map("3")
+  TYPE_4 @map("4")
+}
