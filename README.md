@@ -254,4 +254,4 @@ MySQL neturi `mode: "insensitive"` palaikymo kaip PostgreSQL. Sprendimas - el. p
 
 ## Licencija
 
-MIT License - žiūrėti [LICENSE](LICENSE) failą.
+Proprietary - UAB 1Partner. Visos teisės saugomos. Žiūrėti [LICENSE](LICENSE) failą.
