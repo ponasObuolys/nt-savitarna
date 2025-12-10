@@ -1,0 +1,117 @@
+Tai puiki žinia. Leidimas kurti lenteles drastiškai palengvina autentifikavimo procesą.
+
+Dėl **Tech Stack'o**:
+Nerekomenduoju **Supabase** šiam konkrečiam atvejui.
+
+  * **Kodėl ne:** Supabase naudoja **PostgreSQL**, o tavo duomenys yra **MySQL**. Bandant tai sujungti ("Wrapperiai" ar duomenų sinchronizavimas) sugaiši daug brangaus laiko.
+  * **Rekomendacija (Cursor "God Stack"):** **Next.js (App Router) + TypeScript + Tailwind CSS + Prisma ORM.**
+      * **Next.js:** Leidžia turėti ir Frontend, ir Backend (API routes) viename projekte. Nereikia atskiro serverio.
+      * **Prisma:** Tobulai tinka darbui su egzistuojančia MySQL duomenų baze. Ji "nuskaitys" (introspect) esamą DB struktūrą ir sugeneruos TypeScript tipus automatiškai. Cursor labai gerai supranta Prisma schemas.
+
+Žemiau pateikiu paruoštą **PRD (Product Requirements Document)**. Išsisaugok šį tekstą kaip `PRD.md` failą savo projekto direktorijoje – Cursor naudos jį kaip pagrindinį instrukcijų šaltinį.
+
+-----
+
+# PRD: NT Vertinimo Savitarna ir TVS (1Partner)
+
+## 1\. Projekto Tikslas
+
+Sukurti "fasadinę" elektroninės parduotuvės ir savitarnos sistemą (`vid.vertintojas.pro`), skirtą parodyti NMA agentūrai. Sistema turi naudoti realius duomenis iš `ntsmainuser_nts2db` MySQL duomenų bazės, leidžiant vartotojams prisijungti, matyti savo užsakymus, o administratoriams – valdyti procesą.
+
+## 2\. Tech Stack
+
+  * **Framework:** Next.js 14+ (App Router)
+  * **Language:** TypeScript
+  * **Styling:** Tailwind CSS (Shadcn/UI komponentai rekomenduojami greičiui)
+  * **Database ORM:** Prisma (Connect to existing MySQL)
+  * **Auth:** NextAuth.js (arba paprasta JWT sesija) naudojant naują `app_users` lentelę.
+
+## 3\. Duomenų Bazės Struktūra
+
+### 3.1. Esama Lentelė (Read-Only logikai)
+
+  * **Lentelė:** `uzkl_ivertink1p` (Duomenys iš `uzkl-ivertink1p-summary.md`)
+  * **Svarbiausi laukai:**
+      * `id` (Unikalus ID)
+      * `el_pastas` (Susiejimui su vartotoju)
+      * `service_type` (Paslaugos tipas: 1, 2, 3, 4)
+      * `status` (Mokėjimo/Vykdymo statusas: 'paid', 'done', etc.)
+      * `is_enough_data_for_ai` (Logikai service\_type=1)
+      * `rc_filename` (PDF failo pavadinimas)
+      * `priskirta` (Vertintojo kodas)
+      * `created_at` (Data)
+
+### 3.2. Nauja Lentelė (Reikia sukurti)
+
+  * **Lentelė:** `app_users`
+  * **Tikslas:** Saugoti registruotus vartotojus ir administratorius.
+  * **Struktūra (SQL):**
+    ```sql
+    CREATE TABLE app_users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        password_hash VARCHAR(255) NOT NULL,
+        role ENUM('client', 'admin') DEFAULT 'client',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    ```
+
+## 4\. Funkciniai Reikalavimai
+
+### 4.1. Autentifikacija
+
+  * **Registracija:** Vartotojas suveda Email + Slaptažodį.
+  * **Logika:** Registruojantis sistema netikrina, ar vartotojas jau turi užsakymų. Tiesiog sukuriamas useris.
+  * **Susiejimas:** Prisijungus, sistema ieško lentelėje `uzkl_ivertink1p` įrašų, kur `el_pastas` sutampa su prisijungusio vartotojo `email`.
+
+### 4.2. Kliento Portalas (Dashboard)
+
+Vartotojas mato lentelę su savo užsakymais.
+
+  * **Stulpeliai:** Data, Paslauga, Kaina, Statusas, Veiksmai.
+  * **Paslaugų atvaizdavimas (Logic Map):**
+      * `service_type = 1`: "Automatinis vertinimas". Kaina 8 EUR.
+      * `service_type = 2`: "Vertintojo nustatymas". Kaina 30 EUR.
+      * `service_type = 3`: "Kainos patikslinimas (Apžiūra)".
+      * `service_type = 4`: "Turto vertinimas (Bankui)".
+  * **Statuso logika:**
+      * Jei `service_type == 1` AND `is_enough_data_for_ai == 1` -\> Statusas: **"Atlikta"**.
+      * Jei `status == 'paid'` -\> Statusas: **"Apmokėta / Vykdoma"**.
+      * Kitu atveju -\> **"Laukiama apmokėjimo"**.
+  * **Veiksmai (Actions):**
+      * **Atsisiųsti ataskaitą:** Mygtukas rodomas TIK jei yra `rc_filename` ir užsakymas laikomas atliktu.
+      * **Nuorodos generavimas:** `https://www.vertintojas.pro/d_pdf.php?f={rc_filename}`.
+
+### 4.3. Administratoriaus TVS
+
+Prieinama tik vartotojams su `role = 'admin'`.
+
+1.  **Užsakymų sąrašas:** Mato VISUS užsakymus iš `uzkl_ivertink1p`. Gali filtruoti pagal statusą.
+2.  **Produktų valdymas (Dummy):** Puslapis, kuriame "Hardcoded" arba iš JSON atvaizduojami produktai (Service 1-4) su kainomis ir mygtuku "Redaguoti" (kuris realiai nieko nedaro arba tik atidaro modalą, kad parodyti funkcionalumą).
+3.  **Statistika:** Paprasti skaitliukai viršuje: "Viso užsakymų", "Šio mėnesio pajamos" (suma pagal service\_type kainas).
+
+### 4.4. Integracijos
+
+  * **Vertintojo info:** Jei užsakymas turi `priskirta` reikšmę, UI atvaizduoti (Hardcoded map'ą):
+      * `KODAS1` -\> Jonas Jonaitis, +370..., jonas@1p.lt
+      * (Jei kodas nežinomas, rodyti bendrą info).
+
+## 5\. UI/UX Gairės
+
+  * Švarus, minimalistinis dizainas (Balta/Mėlyna spalvos, atitinkančios 1Partner stilių).
+  * Responsive (turi veikti ant mobilaus).
+  * **Svarbu:** Aiškūs "Call to Action" mygtukai (pvz., "Atsisiųsti ataskaitą").
+
+-----
+
+### Instrukcija darbui su Cursor
+
+1.  Sukurk projektą: `npx create-next-app@latest my-tvs --typescript --tailwind --eslint`.
+2.  Įdiek Prisma: `npm install prisma --save-dev`, `npm install @prisma/client`.
+3.  Inicijuok Prisma: `npx prisma init`.
+4.  Pakeisk `.env` faile `DATABASE_URL` į formatą:
+    `mysql://ntsmainuser:n88CsZ4R7f98zkgZ@109.235.66.254:3306/ntsmainuser_nts2db`
+5.  Paleisk `npx prisma db pull`. Tai sugeneruos `schema.prisma` failą su esama `uzkl_ivertink1p` lentele.
+6.  Atsidaryk `schema.prisma`, pridėk `app_users` modelį (kaip aprašyta PRD) ir paleisk `npx prisma db push`.
+7.  Tada atsidaryk **Cursor Composer (Ctrl+I)**, prisek šį `PRD.md` failą ir rašyk:
+    > "Create a Next.js dashboard based on this PRD. Start by setting up the authentication flow using NextAuth and the Prisma `app_users` model."
