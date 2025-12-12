@@ -1,39 +1,60 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { OrderTable } from "@/components/orders/OrderTable";
+import { OrderFilters, OrderFiltersState, defaultFilters } from "@/components/admin/OrderFilters";
 import type { Order } from "@/types";
 
-const STATUS_OPTIONS = [
-  { value: "all", label: "Visi" },
-  { value: "completed", label: "Atlikta" },
-  { value: "paid", label: "Apmokėta" },
-  { value: "pending", label: "Laukiama" },
-];
-
 export default function AdminOrdersPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [total, setTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(50);
   const [isLoading, setIsLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchInput, setSearchInput] = useState("");
 
-  const fetchOrders = async () => {
+  // Initialize filters from URL
+  const [filters, setFilters] = useState<OrderFiltersState>(() => {
+    const search = searchParams.get("search") || "";
+    const dateFrom = searchParams.get("dateFrom");
+    const dateTo = searchParams.get("dateTo");
+    const status = searchParams.get("status");
+    const serviceType = searchParams.get("serviceType");
+    const municipality = searchParams.get("municipality") || "";
+    const city = searchParams.get("city") || "";
+    const propertyType = searchParams.get("propertyType") || "";
+
+    return {
+      search,
+      dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+      dateTo: dateTo ? new Date(dateTo) : undefined,
+      status: status ? status.split(",") : [],
+      serviceType: serviceType ? serviceType.split(",") : [],
+      municipality,
+      city,
+      propertyType,
+    };
+  });
+
+  const fetchOrders = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
-      if (statusFilter !== "all") params.set("status", statusFilter);
-      if (searchQuery) params.set("search", searchQuery);
+      params.set("page", currentPage.toString());
+
+      if (filters.search) params.set("search", filters.search);
+      if (filters.dateFrom) params.set("dateFrom", filters.dateFrom.toISOString().split("T")[0]);
+      if (filters.dateTo) params.set("dateTo", filters.dateTo.toISOString().split("T")[0]);
+      if (filters.status.length > 0) params.set("status", filters.status.join(","));
+      if (filters.serviceType.length > 0) params.set("serviceType", filters.serviceType.join(","));
+      if (filters.municipality) params.set("municipality", filters.municipality);
+      if (filters.city) params.set("city", filters.city);
+      if (filters.propertyType) params.set("propertyType", filters.propertyType);
 
       const response = await fetch(`/api/admin/orders?${params}`);
       const data = await response.json();
@@ -47,25 +68,53 @@ export default function AdminOrdersPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, filters]);
 
   useEffect(() => {
     fetchOrders();
-  }, [statusFilter, searchQuery]);
+  }, [fetchOrders]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSearchQuery(searchInput);
+  // Update URL when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    if (filters.search) params.set("search", filters.search);
+    if (filters.dateFrom) params.set("dateFrom", filters.dateFrom.toISOString().split("T")[0]);
+    if (filters.dateTo) params.set("dateTo", filters.dateTo.toISOString().split("T")[0]);
+    if (filters.status.length > 0) params.set("status", filters.status.join(","));
+    if (filters.serviceType.length > 0) params.set("serviceType", filters.serviceType.join(","));
+    if (filters.municipality) params.set("municipality", filters.municipality);
+    if (filters.city) params.set("city", filters.city);
+    if (filters.propertyType) params.set("propertyType", filters.propertyType);
+    if (currentPage > 1) params.set("page", currentPage.toString());
+
+    const queryString = params.toString();
+    router.replace(`/admin/orders${queryString ? `?${queryString}` : ""}`, { scroll: false });
+  }, [filters, currentPage, router]);
+
+  const handleFiltersChange = (newFilters: OrderFiltersState) => {
+    setFilters(newFilters);
+    setCurrentPage(1); // Reset to first page on filter change
   };
 
-  const clearFilters = () => {
-    setStatusFilter("all");
-    setSearchQuery("");
-    setSearchInput("");
+  const handleClearFilters = () => {
+    setFilters(defaultFilters);
+    setCurrentPage(1);
   };
 
-  const currentStatusLabel = STATUS_OPTIONS.find((s) => s.value === statusFilter)?.label || "Visi";
-  const hasFilters = statusFilter !== "all" || searchQuery;
+  const totalPages = Math.ceil(total / pageSize);
+  const startItem = total > 0 ? (currentPage - 1) * pageSize + 1 : 0;
+  const endItem = Math.min(currentPage * pageSize, total);
+
+  const hasActiveFilters =
+    filters.search ||
+    filters.dateFrom ||
+    filters.dateTo ||
+    filters.status.length > 0 ||
+    filters.serviceType.length > 0 ||
+    filters.municipality ||
+    filters.city ||
+    filters.propertyType;
 
   return (
     <div className="space-y-6">
@@ -80,68 +129,11 @@ export default function AdminOrdersPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Search */}
-            <form onSubmit={handleSearch} className="flex-1 flex gap-2">
-              <div className="relative flex-1">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-                <Input
-                  placeholder="Ieškoti pagal el. paštą, vardą arba token..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Button type="submit" variant="secondary">
-                Ieškoti
-              </Button>
-            </form>
-
-            {/* Status Filter */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="min-w-32">
-                  <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                  </svg>
-                  {currentStatusLabel}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {STATUS_OPTIONS.map((option) => (
-                  <DropdownMenuItem
-                    key={option.value}
-                    onClick={() => setStatusFilter(option.value)}
-                    className={statusFilter === option.value ? "bg-blue-50" : ""}
-                  >
-                    {option.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Clear Filters */}
-            {hasFilters && (
-              <Button variant="ghost" onClick={clearFilters}>
-                <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Valyti
-              </Button>
-            )}
-          </div>
+          <OrderFilters
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            onClear={handleClearFilters}
+          />
         </CardContent>
       </Card>
 
@@ -152,7 +144,9 @@ export default function AdminOrdersPage() {
           <CardDescription>
             {isLoading
               ? "Kraunama..."
-              : `Rasta: ${total} ${total === 1 ? "užsakymas" : "užsakymai"}`}
+              : total > 0
+              ? `Rodomi ${startItem}-${endItem} iš ${total} užsakymų`
+              : "Užsakymų nerasta"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -164,15 +158,51 @@ export default function AdminOrdersPage() {
               </svg>
             </div>
           ) : (
-            <OrderTable
-              orders={orders}
-              showEmail={true}
-              emptyMessage={
-                hasFilters
-                  ? "Pagal pasirinktus filtrus užsakymų nerasta"
-                  : "Užsakymų nerasta"
-              }
-            />
+            <>
+              <OrderTable
+                orders={orders}
+                showEmail={true}
+                isAdmin={true}
+                emptyMessage={
+                  hasActiveFilters
+                    ? "Pagal pasirinktus filtrus užsakymų nerasta"
+                    : "Užsakymų nerasta"
+                }
+              />
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <p className="text-sm text-gray-600">
+                    Puslapis {currentPage} iš {totalPages}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Ankstesnis
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Kitas
+                      <svg className="h-4 w-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

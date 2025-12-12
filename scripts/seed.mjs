@@ -3,7 +3,6 @@
 
 import "dotenv/config";
 import bcrypt from "bcryptjs";
-import { createRequire } from "module";
 
 // Dynamic import for the generated Prisma client
 const { PrismaClient } = await import("../src/generated/prisma/client.js");

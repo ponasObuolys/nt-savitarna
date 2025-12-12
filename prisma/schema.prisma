@@ -95,9 +95,11 @@ model uzkl_ivertink1P {
   rc_count                                 Int?
   rc_params_json                           String?                       @db.LongText
   rc_filename                              String?                       @db.VarChar(100)
+  rc_saskaita                              String?                       @db.VarChar(255)
   soap_count                               Int?
   soap_san_ids                             String?                       @db.Text
   rc_price                                 Int?
+  place_di                                 String?                       @db.Text
 }
 
 model app_users {
@@ -105,7 +107,22 @@ model app_users {
   email         String         @unique @db.VarChar(255)
   password_hash String         @db.VarChar(255)
   role          app_users_role @default(client)
+  first_name    String?        @db.VarChar(100)
+  last_name     String?        @db.VarChar(100)
+  phone         String?        @db.VarChar(20)
+  company       String?        @db.VarChar(255)
   created_at    DateTime       @default(now()) @db.Timestamp(0)
+}
+
+model app_valuators {
+  id         Int      @id @default(autoincrement())
+  code       String   @unique @db.VarChar(50)
+  first_name String   @db.VarChar(100)
+  last_name  String   @db.VarChar(100)
+  phone      String?  @db.VarChar(20)
+  email      String?  @db.VarChar(255)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now()) @db.Timestamp(0)
 }
 
 enum app_users_role {

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { Eye } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -8,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "./StatusBadge";
 import { ServiceTypeBadge } from "./ServiceTypeBadge";
 import { DownloadButton } from "./DownloadButton";
@@ -17,12 +20,14 @@ import type { Order } from "@/types";
 interface OrderTableProps {
   orders: Order[];
   showEmail?: boolean; // For admin view
+  isAdmin?: boolean; // Links to admin detail page
   emptyMessage?: string;
 }
 
 export function OrderTable({
   orders,
   showEmail = false,
+  isAdmin = false,
   emptyMessage = "Užsakymų nerasta",
 }: OrderTableProps) {
   if (orders.length === 0) {
@@ -102,11 +107,17 @@ export function OrderTable({
                   <StatusBadge status={displayStatus} />
                 </TableCell>
                 <TableCell className="text-right whitespace-nowrap">
-                  {canDownload ? (
-                    <DownloadButton filename={order.rc_filename!} />
-                  ) : (
-                    <span className="text-sm text-gray-400">—</span>
-                  )}
+                  <div className="flex items-center justify-end gap-2">
+                    <Link href={isAdmin ? `/admin/orders/${order.id}` : `/dashboard/orders/${order.id}`}>
+                      <Button variant="ghost" size="sm">
+                        <Eye className="h-4 w-4 mr-1" />
+                        Detalės
+                      </Button>
+                    </Link>
+                    {canDownload && (
+                      <DownloadButton filename={order.rc_filename!} />
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             );
