@@ -34,6 +34,7 @@ export interface Order {
   created_at: Date | null;
   // Additional fields for order details
   address_location_details?: string | null;
+  address_coordinates?: unknown; // MySQL POINT - parsed by coordinates.ts
   main_property_purpose?: string | null;
   main_other_property_purpose?: string | null;
   main_energy_class?: string | null;
@@ -172,3 +173,129 @@ export interface ServiceTypeInfo {
   nameLt: string;
   price: number;
 }
+
+// ===== Phase 2: Reports & Charts Types =====
+
+// Date filter preset types
+export type DatePreset = "today" | "week" | "month" | "quarter" | "year" | "custom";
+
+// Date filter for reports
+export interface DateFilter {
+  preset: DatePreset;
+  dateFrom: Date | null;
+  dateTo: Date | null;
+}
+
+// Generic chart data point
+export interface ChartDataPoint {
+  name: string;
+  value: number;
+  label?: string;
+  color?: string;
+}
+
+// Time series data point
+export interface TimeSeriesDataPoint {
+  date: string;
+  value: number;
+  label?: string;
+}
+
+// Multi-series time data point (for stacked charts)
+export interface MultiSeriesDataPoint {
+  date: string;
+  [key: string]: string | number;
+}
+
+// Report data wrapper
+export interface ReportData<T = unknown> {
+  data: T;
+  filter: DateFilter;
+  generatedAt: string;
+}
+
+// Orders statistics
+export interface OrdersStatsData {
+  total: number;
+  byStatus: ChartDataPoint[];
+  byServiceType: ChartDataPoint[];
+  byPropertyType: ChartDataPoint[];
+  byMunicipality: ChartDataPoint[];
+  timeline: TimeSeriesDataPoint[];
+}
+
+// Revenue statistics
+export interface RevenueStatsData {
+  totalRevenue: number;
+  averageOrderValue: number;
+  projectedRevenue: number;
+  byServiceType: ChartDataPoint[];
+  timeline: TimeSeriesDataPoint[];
+}
+
+// Valuator workload statistics
+export interface ValuatorWorkloadData {
+  totalAssigned: number;
+  averagePerValuator: number;
+  mostLoaded: { name: string; count: number } | null;
+  leastLoaded: { name: string; count: number } | null;
+  byValuator: ChartDataPoint[];
+  timeline: MultiSeriesDataPoint[];
+  ranking: ValuatorRankingItem[];
+}
+
+// Valuator ranking item
+export interface ValuatorRankingItem {
+  id: number;
+  code: string;
+  name: string;
+  completedOrders: number;
+  inProgressOrders: number;
+  totalOrders: number;
+}
+
+// Client activity statistics
+export interface ClientActivityData {
+  totalClients: number;
+  activeClients: number;
+  newThisMonth: number;
+  registrationTimeline: TimeSeriesDataPoint[];
+  activityDistribution: ChartDataPoint[];
+  topClients: TopClientItem[];
+}
+
+// Top client item
+export interface TopClientItem {
+  id: number;
+  email: string;
+  name: string;
+  ordersCount: number;
+  totalSpent: number;
+}
+
+// Geography statistics
+export interface GeographyStatsData {
+  byMunicipality: ChartDataPoint[];
+  byCity: ChartDataPoint[];
+  totalLocations: number;
+}
+
+// Valuator with statistics (for valuator list)
+export interface ValuatorWithStats extends Valuator {
+  totalOrders: number;
+  completedOrders: number;
+  inProgressOrders: number;
+  thisMonthOrders: number;
+}
+
+// Export types
+export type ExportFormat = "csv" | "pdf";
+
+export interface ExportRequest {
+  reportType: "orders" | "revenue" | "valuators" | "clients" | "geography";
+  format: ExportFormat;
+  filter: DateFilter;
+}
+
+// Coordinates type
+export type Coordinates = [number, number] | null; // [lat, lng]

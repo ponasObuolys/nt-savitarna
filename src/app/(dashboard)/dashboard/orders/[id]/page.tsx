@@ -3,13 +3,15 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, FileText, Receipt, Loader2 } from "lucide-react";
+import { ArrowLeft, Download, FileText, Receipt, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { OrderDetails } from "@/components/orders/OrderDetails";
+import { PropertyMap } from "@/components/map";
 import { getOrderStatusDisplay, getServiceTypeDisplay, formatDate } from "@/lib/translations";
+import { parseCoordinates } from "@/lib/coordinates";
 import type { Order } from "@/types";
 
 export default function OrderDetailPage() {
@@ -193,6 +195,27 @@ export default function OrderDetailPage() {
             </div>
           </CardContent>
         )}
+      </Card>
+
+      {/* Map section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <MapPin className="h-5 w-5" />
+            Turto lokacija
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PropertyMap
+            coordinates={parseCoordinates(order.address_coordinates)}
+            address={{
+              municipality: order.address_municipality,
+              city: order.address_city,
+              street: order.address_street,
+              houseNumber: order.address_house_number,
+            }}
+          />
+        </CardContent>
       </Card>
 
       {/* Order details */}

@@ -47,9 +47,22 @@ export async function GET(
       );
     }
 
+    // Fetch coordinates separately using raw SQL (Prisma doesn't support POINT type)
+    // Use HEX() to convert binary to hex string, avoiding Prisma type conversion issues
+    const coordsResult = await prisma.$queryRaw<Array<{ coords: string | null }>>`
+      SELECT HEX(address_coordinates) as coords
+      FROM uzkl_ivertink1P
+      WHERE id = ${orderId}
+    `;
+
+    const orderWithCoords = {
+      ...order,
+      address_coordinates: coordsResult[0]?.coords || null,
+    };
+
     return NextResponse.json<ApiResponse<Order>>({
       success: true,
-      data: order,
+      data: orderWithCoords,
     });
   } catch (error) {
     console.error("Order fetch error:", error);

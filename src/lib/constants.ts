@@ -132,3 +132,28 @@ export const STATUS_COLORS: Record<OrderDisplayStatus, string> = {
   paid: "bg-blue-100 text-blue-800",
   pending: "bg-yellow-100 text-yellow-800",
 };
+
+// Get display status from order object (alias for getOrderDisplayStatus)
+export function getDisplayStatus(order: {
+  service_type: ServiceType | null;
+  is_enough_data_for_ai: boolean | null;
+  status: string | null;
+}): OrderDisplayStatus {
+  return getOrderDisplayStatus(order.service_type, order.is_enough_data_for_ai, order.status);
+}
+
+// Get badge variant for status (for shadcn Badge component)
+export function getStatusBadgeVariant(
+  status: OrderDisplayStatus
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case "completed":
+      return "default"; // Green-ish in default theme
+    case "paid":
+      return "secondary"; // Blue-ish
+    case "pending":
+      return "outline"; // Yellow/neutral
+    default:
+      return "outline";
+  }
+}
