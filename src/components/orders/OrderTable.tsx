@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "./StatusBadge";
 import { ServiceTypeBadge } from "./ServiceTypeBadge";
 import { DownloadButton } from "./DownloadButton";
+import { OrderActions } from "./OrderActions";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { getOrderDisplayStatus, canDownloadOrder, getServiceInfo } from "@/lib/constants";
 import type { Order } from "@/types";
@@ -31,6 +32,7 @@ interface OrderTableProps {
   showAddress?: boolean; // Show address column (for admin view)
   isAdmin?: boolean; // Links to admin detail page
   emptyMessage?: string;
+  onOrderDeleted?: () => void; // Callback when order is deleted
 }
 
 function formatAddress(order: Order): string {
@@ -47,6 +49,7 @@ export function OrderTable({
   showAddress = false,
   isAdmin = false,
   emptyMessage = "Užsakymų nerasta",
+  onOrderDeleted,
 }: OrderTableProps) {
   if (orders.length === 0) {
     return (
@@ -152,6 +155,9 @@ export function OrderTable({
                     </Link>
                     {canDownload && (
                       <DownloadButton filename={order.rc_filename!} />
+                    )}
+                    {isAdmin && (
+                      <OrderActions orderId={order.id} onDelete={onOrderDeleted} />
                     )}
                   </div>
                 </TableCell>

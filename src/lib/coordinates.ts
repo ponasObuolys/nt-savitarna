@@ -136,12 +136,19 @@ export function isValidLongitude(lng: number): boolean {
 
 /**
  * Check if coordinates are valid
+ * Note: Rejects (0, 0) as it's "Null Island" - indicates missing coordinates
  */
 export function isValidCoordinates(coords: Coordinates): coords is [number, number] {
   if (!coords || !Array.isArray(coords) || coords.length !== 2) {
     return false;
   }
   const [lat, lng] = coords;
+  
+  // Reject "Null Island" (0, 0) - this means coordinates were not set
+  if (lat === 0 && lng === 0) {
+    return false;
+  }
+  
   return isValidLatitude(lat) && isValidLongitude(lng);
 }
 

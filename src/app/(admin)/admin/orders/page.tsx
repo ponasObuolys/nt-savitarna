@@ -168,6 +168,7 @@ export default function AdminOrdersPage() {
                     ? "Pagal pasirinktus filtrus užsakymų nerasta"
                     : "Užsakymų nerasta"
                 }
+                onOrderDeleted={fetchOrders}
               />
 
               {/* Pagination */}

@@ -11,8 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { OrderDetails } from "@/components/orders/OrderDetails";
 import { OrderEditForm } from "@/components/admin/OrderEditForm";
 import { PropertyMap } from "@/components/map";
+import { GeocodeButton } from "@/components/map/GeocodeButton";
 import { getOrderStatusDisplay, getServiceTypeDisplay, formatDate } from "@/lib/translations";
-import { parseCoordinates } from "@/lib/coordinates";
+import { parseCoordinates, isValidCoordinates } from "@/lib/coordinates";
 import type { Order } from "@/types";
 
 export default function AdminOrderDetailPage() {
@@ -240,15 +241,31 @@ export default function AdminOrderDetailPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <PropertyMap
-            coordinates={parseCoordinates(order.address_coordinates)}
-            address={{
-              municipality: order.address_municipality,
-              city: order.address_city,
-              street: order.address_street,
-              houseNumber: order.address_house_number,
-            }}
-          />
+          {(() => {
+            const coords = parseCoordinates(order.address_coordinates);
+            const hasCoords = isValidCoordinates(coords);
+            return (
+              <>
+                <PropertyMap
+                  coordinates={coords}
+                  address={{
+                    municipality: order.address_municipality,
+                    city: order.address_city,
+                    street: order.address_street,
+                    houseNumber: order.address_house_number,
+                  }}
+                />
+                {!hasCoords && (
+                  <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800 mb-2">
+                      Koordinatės nenustatytos. Galite bandyti jas nustatyti automatiškai pagal adresą.
+                    </p>
+                    <GeocodeButton orderId={order.id} />
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </CardContent>
       </Card>
     </div>
