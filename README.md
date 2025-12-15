@@ -1,6 +1,6 @@
 # NT Savitarna - Nekilnojamojo Turto Vertinimo Savitarnos Portalas
 
-Klientų savitarnos portalas, skirtas 1Partner nekilnojamojo turto vertinimo paslaugoms. Sistema leidžia klientams peržiūrėti savo užsakymus, atsisiųsti ataskaitas, o administratoriams - valdyti visus užsakymus.
+Klientų savitarnos portalas, skirtas 1Partner nekilnojamojo turto vertinimo paslaugoms. Sistema leidžia klientams peržiūrėti savo užsakymus, atsisiųsti ataskaitas, o administratoriams - valdyti visus užsakymus ir generuoti ataskaitas.
 
 ## Technologijos
 
@@ -9,8 +9,10 @@ Klientų savitarnos portalas, skirtas 1Partner nekilnojamojo turto vertinimo pas
 - **Duomenų bazė**: MySQL su Prisma 6 ORM
 - **Stiliai**: Tailwind CSS 4
 - **UI komponentai**: Shadcn/UI (Radix UI pagrindu)
+- **Grafikai**: Recharts
 - **Autentifikacija**: JWT (jose biblioteka) + bcryptjs
 - **Formos**: React Hook Form + Zod validacija
+- **Geocoding**: OpenStreetMap Nominatim API
 
 ## Projekto struktūra
 
@@ -18,28 +20,35 @@ Klientų savitarnos portalas, skirtas 1Partner nekilnojamojo turto vertinimo pas
 src/
 ├── app/                      # Next.js App Router puslapiai
 │   ├── (admin)/              # Admin route grupė
-│   │   └── admin/            # Admin dashboard, užsakymai, produktai
+│   │   └── admin/            # Admin dashboard, užsakymai, ataskaitos
 │   ├── (auth)/               # Autentifikacijos route grupė
 │   │   ├── login/            # Prisijungimo puslapis
 │   │   └── register/         # Registracijos puslapis
 │   ├── (dashboard)/          # Kliento dashboard route grupė
 │   │   └── dashboard/        # Kliento pradžia, užsakymai
 │   ├── api/                  # API endpoints
-│   │   ├── admin/            # Admin API (orders, stats)
+│   │   ├── admin/            # Admin API (orders, stats, reports)
 │   │   ├── auth/             # Auth API (login, logout, register)
 │   │   ├── checkout/         # Checkout API
 │   │   ├── orders/           # Užsakymų API
 │   │   └── seed/             # Dev seed endpoint
 │   └── checkout/             # Checkout puslapiai
 ├── components/               # React komponentai
+│   ├── admin/                # Admin komponentai (filtrai, formos)
+│   ├── charts/               # Grafikų komponentai
 │   ├── layout/               # Layout komponentai (Header, Sidebar)
+│   ├── map/                  # Žemėlapio komponentai (Leaflet)
 │   ├── orders/               # Užsakymų komponentai
+│   ├── reports/              # Ataskaitų komponentai
 │   └── ui/                   # Shadcn/UI baziniai komponentai
 ├── generated/                # Prisma sugeneruotas klientas
 ├── lib/                      # Utility funkcijos
 │   ├── auth.ts               # JWT autentifikacija
 │   ├── constants.ts          # Konstantos ir helper funkcijos
+│   ├── coordinates.ts        # Koordinačių parsing (MySQL POINT)
+│   ├── geocoding.ts          # Adresų geocoding (Nominatim)
 │   ├── prisma.ts             # Prisma klientas
+│   ├── report-utils.ts       # Ataskaitų helper funkcijos
 │   └── utils.ts              # Bendros utility funkcijos
 └── types/                    # TypeScript tipai
 ```
@@ -111,15 +120,20 @@ npm start
 - **Prisijungimas/Registracija** - Saugi autentifikacija su JWT
 - **Dashboard** - Užsakymų statistika ir greita apžvalga
 - **Užsakymų sąrašas** - Visų savo užsakymų peržiūra
+- **Užsakymo detalės** - Pilna užsakymo informacija su žemėlapiu
 - **PDF atsisiuntimas** - Atliktų vertinimų ataskaitų atsisiuntimas
 - **Būsenos sekimas** - Užsakymo būsenos stebėjimas (laukiama/apmokėta/atlikta)
 
 ### Administratoriams
 
-- **Admin Dashboard** - Bendra statistika (užsakymai, pajamos)
-- **Užsakymų valdymas** - Visų užsakymų peržiūra ir filtravimas
-- **Paieška** - Užsakymų paieška pagal el. paštą, vardą, token
-- **Filtrai** - Filtravimas pagal būseną
+- **Admin Dashboard** - Bendra statistika (užsakymai, mėnesio pajamos, klientai)
+- **Užsakymų valdymas** - Visų užsakymų peržiūra, filtravimas, redagavimas ir trynimas
+- **Užsakymo detalės** - Pilna informacija, žemėlapis, redagavimo forma
+- **Paieška** - Užsakymų paieška pagal el. paštą, vardą, token, adresą
+- **Filtrai** - Filtravimas pagal būseną, paslaugos tipą, datą
+- **Ataskaitos** - Pajamų, klientų aktyvumo, vertintojų apkrovos, geografijos ataskaitos
+- **Eksportas** - Ataskaitų eksportas į CSV ir PDF formatus
+- **Geocoding** - Automatinis koordinačių nustatymas pagal adresą
 
 ### Paslaugų tipai
 
@@ -149,14 +163,29 @@ POST /api/auth/logout    - Atsijungimas
 ### Užsakymai
 
 ```
-GET /api/orders          - Gauti savo užsakymus (reikia auth)
+GET  /api/orders         - Gauti savo užsakymus (reikia auth)
+GET  /api/orders/[id]    - Gauti užsakymo detales (reikia auth)
 ```
 
 ### Admin
 
 ```
-GET /api/admin/orders    - Gauti visus užsakymus (reikia admin)
-GET /api/admin/stats     - Gauti statistiką (reikia admin)
+GET    /api/admin/orders              - Gauti visus užsakymus
+GET    /api/admin/orders/[id]         - Gauti užsakymo detales
+PUT    /api/admin/orders/[id]         - Atnaujinti užsakymą
+DELETE /api/admin/orders/[id]/delete  - Ištrinti užsakymą
+POST   /api/admin/orders/[id]/geocode - Nustatyti koordinates pagal adresą
+GET    /api/admin/stats               - Gauti statistiką
+```
+
+### Ataskaitos (Admin)
+
+```
+GET /api/admin/reports/revenue    - Pajamų ataskaita
+GET /api/admin/reports/clients    - Klientų aktyvumo ataskaita
+GET /api/admin/reports/valuators  - Vertintojų apkrovos ataskaita
+GET /api/admin/reports/geography  - Geografijos ataskaita
+GET /api/admin/reports/export     - Eksportuoti ataskaitas (CSV/PDF)
 ```
 
 ### Development
@@ -179,8 +208,10 @@ Arba tiesiog atidaryti naršyklėje: `http://localhost:3000/api/seed`
 
 | Rolė | El. paštas | Slaptažodis |
 |------|------------|-------------|
-| Admin | admin@1partner.lt | admin123 |
+| Admin | admin@1partner.lt | Admin123456 |
 | Klientas | test@klientas.lt | client123 |
+
+> **Pastaba:** Admin slaptažodis buvo pakeistas į saugesnį variantą.
 
 ## Techniniai sprendimai
 
@@ -237,6 +268,21 @@ MySQL neturi `mode: "insensitive"` palaikymo kaip PostgreSQL. Sprendimas - el. p
 1. **Middleware deprecation warning** - Next.js 16 rekomenduoja naudoti "proxy" vietoj "middleware". Dabartinė implementacija veikia, bet ateityje reikės migruoti.
 
 2. **PDF atsisiuntimas** - Naudojamas išorinis URL (`vertintojas.pro`). Jei išorinis serveris nepasiekiamas, PDF nebus galima atsisiųsti.
+
+3. **Geocoding rate limit** - Nominatim API turi 1 užklausa/sekundę limitą. Masinis geocoding gali užtrukti.
+
+## Įgyvendintos funkcijos
+
+- [x] Prisijungimas/Registracija su JWT
+- [x] Kliento dashboard su statistika
+- [x] Admin dashboard su mėnesio pajamomis
+- [x] Užsakymų sąrašas su filtrais ir paieška
+- [x] Užsakymų redagavimas ir trynimas (admin)
+- [x] Interaktyvus žemėlapis su turto lokacija (Leaflet)
+- [x] Automatinis geocoding pagal adresą
+- [x] Ataskaitos (pajamos, klientai, vertintojai, geografija)
+- [x] Ataskaitų eksportas į CSV ir PDF
+- [x] PDF ataskaitų atsisiuntimas
 
 ## Plėtros galimybės
 
