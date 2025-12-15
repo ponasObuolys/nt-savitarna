@@ -308,16 +308,20 @@ const SERVICE_PRICES: Record<string, number> = {
 };
 
 /**
- * Gauti užsakymo kainą
+ * Gauti užsakymo paslaugos kainą (ne turto vertę!)
+ * @param serviceType - paslaugos tipas (TYPE_1, TYPE_2, TYPE_3, TYPE_4)
+ * @param servicePrice - individuali paslaugos kaina iš DB (service_price laukas)
+ * @returns paslaugos kaina eurais
  */
-export function getOrderPrice(serviceType: string | null, customPrice: number | null): number {
+export function getOrderPrice(serviceType: string | null, servicePrice: number | null): number {
   if (!serviceType) return 0;
 
-  // TYPE_3 ir TYPE_4 naudoja individualią kainą
-  if ((serviceType === "TYPE_3" || serviceType === "TYPE_4") && customPrice) {
-    return customPrice;
+  // Jei yra individuali paslaugos kaina, naudoti ją
+  if (servicePrice !== null && servicePrice !== undefined) {
+    return servicePrice;
   }
 
+  // Kitu atveju naudoti standartinę kainą pagal tipą
   return SERVICE_PRICES[serviceType] || 0;
 }
 

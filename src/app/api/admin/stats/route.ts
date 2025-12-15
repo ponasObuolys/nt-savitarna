@@ -69,7 +69,8 @@ export async function GET() {
       // Only count paid or completed orders for revenue
       if (status === "completed" || status === "paid") {
         const serviceInfo = getServiceInfo(order.service_type);
-        monthlyRevenue += order.price || serviceInfo.price;
+        const servicePrice = order.service_price ?? serviceInfo.price;
+        monthlyRevenue += servicePrice;
       }
     });
 

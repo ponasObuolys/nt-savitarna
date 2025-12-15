@@ -294,7 +294,7 @@ async function fetchRevenueData(dateFrom: Date, dateTo: Date): Promise<RevenueSt
     select: {
       id: true,
       service_type: true,
-      price: true,
+      service_price: true,
       created_at: true,
     },
     take: MAX_EXPORT_RECORDS,
@@ -302,7 +302,7 @@ async function fetchRevenueData(dateFrom: Date, dateTo: Date): Promise<RevenueSt
 
   const ordersWithRevenue = orders.map((order) => ({
     ...order,
-    revenue: getOrderPrice(order.service_type, order.price ? Number(order.price) : null),
+    revenue: getOrderPrice(order.service_type, order.service_price),
   }));
 
   const totalRevenue = ordersWithRevenue.reduce((sum, order) => sum + order.revenue, 0);
@@ -463,7 +463,7 @@ async function fetchClientsData(dateFrom: Date, dateTo: Date): Promise<ClientAct
       contact_email: true,
       contact_name: true,
       service_type: true,
-      price: true,
+      service_price: true,
       created_at: true,
     },
     take: MAX_EXPORT_RECORDS,
@@ -483,7 +483,7 @@ async function fetchClientsData(dateFrom: Date, dateTo: Date): Promise<ClientAct
       };
     }
     clientStats[email].ordersCount++;
-    clientStats[email].totalSpent += getOrderPrice(order.service_type, order.price ? Number(order.price) : null);
+    clientStats[email].totalSpent += getOrderPrice(order.service_type, order.service_price);
     if (order.created_at && order.created_at < clientStats[email].firstOrder) {
       clientStats[email].firstOrder = order.created_at;
     }

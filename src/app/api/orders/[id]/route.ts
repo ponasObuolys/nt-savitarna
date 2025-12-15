@@ -39,8 +39,8 @@ export async function GET(
       );
     }
 
-    // Verify the order belongs to the current user (by email)
-    if (order.contact_email.toLowerCase() !== user.email.toLowerCase()) {
+    // Verify the order belongs to the current user (by email) - admins can see all orders
+    if (user.role !== "admin" && order.contact_email.toLowerCase() !== user.email.toLowerCase()) {
       return NextResponse.json<ApiResponse>(
         { success: false, error: "Neturite prieigos prie šio užsakymo" },
         { status: 403 }

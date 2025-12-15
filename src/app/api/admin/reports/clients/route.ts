@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
         contact_email: true,
         contact_name: true,
         service_type: true,
-        price: true,
+        service_price: true,
         status: true,
         is_enough_data_for_ai: true,
         created_at: true,
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
       const isPaidOrDone = order.status === "paid" || order.status === "done" ||
         (order.service_type === "TYPE_1" && order.is_enough_data_for_ai);
       if (isPaidOrDone) {
-        clientStats[email].totalSpent += getOrderPrice(order.service_type, order.price);
+        clientStats[email].totalSpent += getOrderPrice(order.service_type, order.service_price);
       }
     });
 

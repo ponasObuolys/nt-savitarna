@@ -161,7 +161,7 @@ export default function AdminOrdersPage() {
             <>
               <OrderTable
                 orders={orders}
-                showEmail={true}
+                showAddress={true}
                 isAdmin={true}
                 emptyMessage={
                   hasActiveFilters

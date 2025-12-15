@@ -22,6 +22,7 @@ export interface Order {
   main_property?: string | null;
   main_property_type?: string | null;
   service_type: ServiceType | null;
+  service_price: number | null;
   is_enough_data_for_ai: boolean | null;
   status: string | null;
   price: number | null;

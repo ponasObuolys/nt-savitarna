@@ -14,19 +14,37 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "./StatusBadge";
 import { ServiceTypeBadge } from "./ServiceTypeBadge";
 import { DownloadButton } from "./DownloadButton";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { getOrderDisplayStatus, canDownloadOrder, getServiceInfo } from "@/lib/constants";
 import type { Order } from "@/types";
 
+function getDisplayServicePrice(order: Order): number | null {
+  if (order.service_price !== null && order.service_price !== undefined) {
+    return order.service_price;
+  }
+  const serviceInfo = getServiceInfo(order.service_type);
+  return serviceInfo.price > 0 ? serviceInfo.price : null;
+}
+
 interface OrderTableProps {
   orders: Order[];
-  showEmail?: boolean; // For admin view
+  showAddress?: boolean; // Show address column (for admin view)
   isAdmin?: boolean; // Links to admin detail page
   emptyMessage?: string;
 }
 
+function formatAddress(order: Order): string {
+  const parts = [
+    order.address_city,
+    order.address_street,
+    order.address_house_number,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(", ") : "—";
+}
+
 export function OrderTable({
   orders,
-  showEmail = false,
+  showAddress = false,
   isAdmin = false,
   emptyMessage = "Užsakymų nerasta",
 }: OrderTableProps) {
@@ -58,9 +76,20 @@ export function OrderTable({
         <TableHeader>
           <TableRow className="bg-gray-50">
             <TableHead className="font-semibold">Data</TableHead>
-            {showEmail && <TableHead className="font-semibold">El. paštas</TableHead>}
+            {showAddress && <TableHead className="font-semibold">Adresas</TableHead>}
             <TableHead className="font-semibold">Paslauga</TableHead>
-            <TableHead className="font-semibold">Kaina</TableHead>
+            <TableHead className="font-semibold">
+              <div className="flex items-center gap-1">
+                Paslaugos kaina
+                <InfoTooltip content="Kaina, kurią klientas sumokėjo už vertinimo paslaugą" />
+              </div>
+            </TableHead>
+            <TableHead className="font-semibold">
+              <div className="flex items-center gap-1">
+                Turto vertė
+                <InfoTooltip content="Apskaičiuota nekilnojamojo turto rinkos vertė" />
+              </div>
+            </TableHead>
             <TableHead className="font-semibold">Statusas</TableHead>
             <TableHead className="font-semibold text-right">Veiksmai</TableHead>
           </TableRow>
@@ -72,7 +101,6 @@ export function OrderTable({
               order.is_enough_data_for_ai,
               order.status
             );
-            const serviceInfo = getServiceInfo(order.service_type);
             const canDownload = canDownloadOrder(order.rc_filename, displayStatus);
 
             return (
@@ -86,19 +114,27 @@ export function OrderTable({
                       })
                     : "—"}
                 </TableCell>
-                {showEmail && (
-                  <TableCell className="text-gray-600 max-w-[200px] truncate">
-                    {order.contact_email}
+                {showAddress && (
+                  <TableCell className="text-gray-600 max-w-[250px] truncate" title={formatAddress(order)}>
+                    {formatAddress(order)}
                   </TableCell>
                 )}
                 <TableCell className="whitespace-nowrap">
                   <ServiceTypeBadge serviceType={order.service_type} />
                 </TableCell>
                 <TableCell className="whitespace-nowrap">
+                  {(() => {
+                    const servicePrice = getDisplayServicePrice(order);
+                    return servicePrice ? (
+                      <span className="font-medium text-green-600">{servicePrice} €</span>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    );
+                  })()}
+                </TableCell>
+                <TableCell className="whitespace-nowrap">
                   {order.price ? (
-                    <span className="font-medium">{order.price} €</span>
-                  ) : serviceInfo.price > 0 ? (
-                    <span className="font-medium">{serviceInfo.price} €</span>
+                    <span className="font-medium">{order.price.toLocaleString("lt-LT")} €</span>
                   ) : (
                     <span className="text-gray-400">—</span>
                   )}

@@ -70,15 +70,15 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         service_type: true,
-        price: true,
+        service_price: true,
         created_at: true,
       },
     });
 
-    // Calculate revenue for each order
+    // Calculate revenue for each order (using service_price, not property value)
     const ordersWithRevenue = orders.map((order) => ({
       ...order,
-      revenue: getOrderPrice(order.service_type, order.price ? Number(order.price) : null),
+      revenue: getOrderPrice(order.service_type, order.service_price),
     }));
 
     // Total revenue

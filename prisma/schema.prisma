@@ -87,6 +87,7 @@ model uzkl_ivertink1P {
   items_count                              Int?
   status                                   String?                       @db.VarChar(50)
   service_type                             uzkl_ivertink1P_service_type?
+  service_price                            Int?
   priskirta                                String?                       @db.VarChar(255)
   priskirta_date                           DateTime?                     @db.DateTime(0)
   variant                                  String                        @db.Text
